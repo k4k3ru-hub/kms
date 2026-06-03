@@ -11,6 +11,7 @@ import (
     "encoding/base64"
     "fmt"
     "io"
+    "os"
 )
 
 const (
@@ -34,7 +35,12 @@ func NewProvider(config Config) (*Provider, error) {
         return nil, fmt.Errorf("failed to create env aes gcm provider: %w", err)
     }
 
-    encryptionKey, err := base64.StdEncoding.DecodeString(config.EncryptionKeyBase64)
+    encryptionKeyBase64 := os.Getenv(config.EnvName)
+    if encryptionKeyBase64 == "" {
+        return nil, fmt.Errorf("failed to create env aes gcm provider: missing required parameter: env_name=%q", config.EnvName)
+    }
+
+    encryptionKey, err := base64.StdEncoding.DecodeString(encryptionKeyBase64)
     if err != nil {
         return nil, fmt.Errorf("failed to create env aes gcm provider: invalid parameter: encryption_key_base64: %w", err)
     }
@@ -125,7 +131,7 @@ func (p *Provider) Encrypt(ctx context.Context, plainText string) (string, error
 
 
 //
-// Dencrypt secret.
+// Decrypt secret.
 //
 // Version:
 //   - 2026-05-25: Added.
