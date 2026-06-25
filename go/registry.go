@@ -1,7 +1,7 @@
 //
 // registry.go
 //
-package secretprovider
+package kms
 
 import (
     "fmt"
