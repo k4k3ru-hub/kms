@@ -14,10 +14,12 @@ type SigningProvider = k4k3ruKMSSigning.Provider
 type EncryptionENVConfig = k4k3ruKMSEncryption.ENVConfig
 type SigningENVConfig = k4k3ruKMSSigning.ENVConfig
 
-type SigningSignatureAlgorithm = k4k3ruKMSSigning.SignatureAlgorithm
-
+type CreateKeyParams = k4k3ruKMSSigning.CreateKeyParams
 type SignParams = k4k3ruKMSSigning.SignParams
 type VerifyParams = k4k3ruKMSSigning.VerifyParams
+
+
+type SigningSignatureAlgorithm = k4k3ruKMSSigning.SignatureAlgorithm
 
 const (
     SigningSignatureAlgorithmHMACSHA256      = k4k3ruKMSSigning.SignatureAlgorithmHMACSHA256

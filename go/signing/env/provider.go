@@ -105,7 +105,7 @@ func (p *Provider) CreateKey(ctx context.Context, params k4k3ruKMSSigningSpec.Cr
         Algorithm:  params.Algorithm,
     }
 
-    var secretRaw string
+    var secretRaw []byte
 
     switch params.Algorithm {
     case k4k3ruKMSSigningSpec.SignatureAlgorithmHMACSHA256:
@@ -113,7 +113,7 @@ func (p *Provider) CreateKey(ctx context.Context, params k4k3ruKMSSigningSpec.Cr
         if _, err := rand.Read(secretKey); err != nil {
             return nil, fmt.Errorf("failed to create key: %w", err)
         }
-        secretRaw = base64.StdEncoding.EncodeToString(secretKey)
+        secretRaw = secretKey
     case k4k3ruKMSSigningSpec.SignatureAlgorithmEd25519:
         publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
         if err != nil {
@@ -123,10 +123,12 @@ func (p *Provider) CreateKey(ctx context.Context, params k4k3ruKMSSigningSpec.Cr
         publicKeyBase64 := base64.StdEncoding.EncodeToString(publicKey)
         result.PublicKey = &publicKeyBase64
 
-        secretRaw = base64.StdEncoding.EncodeToString(privateKey)
+        secretRaw = privateKey
     default:
         return nil, fmt.Errorf("failed to create key: invalid parameter: signature_algorithm=%q", string(params.Algorithm))
     }
+
+    result.SecretRaw = secretRaw
 
     // Encrypt secret raw.
     aad := params.AAD
@@ -135,7 +137,7 @@ func (p *Provider) CreateKey(ctx context.Context, params k4k3ruKMSSigningSpec.Cr
     }
 
     encryptParams := k4k3ruKMSEncryption.EncryptParams{
-        PlainText: secretRaw,
+        PlainText: base64.StdEncoding.EncodeToString(secretRaw),
         AAD:       aad,
     }
 

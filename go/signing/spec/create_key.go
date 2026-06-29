@@ -18,6 +18,7 @@ type CreateKeyResult struct {
     SecretRef  string
     Algorithm  SignatureAlgorithm
     PublicKey  *string
+    SecretRaw  []byte
 }
 
 
