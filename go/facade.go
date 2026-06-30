@@ -9,6 +9,12 @@ import (
     k4k3ruKMSSigning    "github.com/k4k3ru-hub/kms/go/signing"
 )
 
+const (
+    ProviderKindAWS = k4k3ruKMSConfig.ProviderKindAWS
+    ProviderKindENV = k4k3ruKMSConfig.ProviderKindENV
+    ProviderKindGCP = k4k3ruKMSConfig.ProviderKindGCP
+)
+
 type EncryptionProvider = k4k3ruKMSEncryption.Provider
 type SigningProvider = k4k3ruKMSSigning.Provider
 
