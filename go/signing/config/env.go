@@ -10,7 +10,7 @@ import (
 
 type ENVConfig struct {
     ID            string
-    EncryptionKey string
+    SecretEncryptionKey string
 }
 
 
@@ -24,11 +24,11 @@ func (c ENVConfig) Validate() error {
     if c.ID == "" {
         return fmt.Errorf("missing required parameter: id=%q", "empty")
     }
-    if c.EncryptionKey == "" {
-        return fmt.Errorf("missing required parameter: encryption_key=%q", "empty")
+    if c.SecretEncryptionKey == "" {
+        return fmt.Errorf("missing required parameter: secret_encryption_key=%q", "empty")
     }
-    if len(c.EncryptionKey) > 4096 {
-        return fmt.Errorf("invalid parameter: encryption_key=%q", "too long")
+    if len(c.SecretEncryptionKey) > 4096 {
+        return fmt.Errorf("invalid parameter: secret_encryption_key=%q", "too long")
     }
     return nil
 }

@@ -45,8 +45,8 @@ func NewProvider(config k4k3ruKMSSigningConfig.ENVConfig) (*Provider, error) {
 
     // Create new encryption env provider.
     encryptionENVConfig := k4k3ruKMSEncryption.ENVConfig{
-        ID:            config.ID + ":encryption",
-        EncryptionKey: config.EncryptionKey,
+        ID:  config.ID + ":encryption",
+        Key: config.SecretEncryptionKey,
     }
     encryptionProvider, err := k4k3ruKMSEncryption.NewENVProvider(encryptionENVConfig)
     if err != nil {

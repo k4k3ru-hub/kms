@@ -36,7 +36,7 @@ func NewProvider(config k4k3ruKMSEncryptionConfig.ENVConfig) (*Provider, error) 
     }
 
     // Validate encryption key.
-    encryptionKey, err := base64.StdEncoding.DecodeString(config.EncryptionKey)
+    encryptionKey, err := base64.StdEncoding.DecodeString(config.Key)
     if err != nil {
         return nil, fmt.Errorf("failed to create new encryption env provider: invalid parameter: encryption_key: %w", err)
     }
