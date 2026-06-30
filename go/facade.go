@@ -4,6 +4,7 @@
 package kms
 
 import (
+    k4k3ruKMSConfig     "github.com/k4k3ru-hub/kms/go/config"
     k4k3ruKMSEncryption "github.com/k4k3ru-hub/kms/go/encryption"
     k4k3ruKMSSigning    "github.com/k4k3ru-hub/kms/go/signing"
 )
@@ -18,6 +19,7 @@ type CreateKeyParams = k4k3ruKMSSigning.CreateKeyParams
 type SignParams = k4k3ruKMSSigning.SignParams
 type VerifyParams = k4k3ruKMSSigning.VerifyParams
 
+type ENVConfigOption = k4k3ruKMSConfig.ENVConfigOption
 
 type SigningSignatureAlgorithm = k4k3ruKMSSigning.SignatureAlgorithm
 
@@ -26,6 +28,17 @@ const (
     SigningSignatureAlgorithmEd25519         = k4k3ruKMSSigning.SignatureAlgorithmEd25519
     SigningSignatureAlgorithmECDSAP256SHA256 = k4k3ruKMSSigning.SignatureAlgorithmECDSAP256SHA256
 )
+
+
+//
+// Load config from env file.
+//
+// Version:
+//   - 2026-06-30: Added.
+//
+func LoadConfigFromEnv(config *ENVConfigOption) (*k4k3ruKMSConfig.ENVConfig, error) {
+    return k4k3ruKMSConfig.LoadFromEnv(config)
+}
 
 
 //
