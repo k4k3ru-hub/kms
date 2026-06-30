@@ -8,12 +8,12 @@ import (
 )
 
 type DecryptParams struct {
-    CipherText string
-    AAD        string
+    Ciphertext []byte
+    AAD        []byte
 }
 
 type DecryptResult struct {
-    PlainText string
+    Plaintext []byte
 }
 
 
@@ -24,10 +24,10 @@ type DecryptResult struct {
 //   - 2026-06-29: Added.
 //
 func (p DecryptParams) Validate() error {
-    if p.CipherText == "" {
+    if len(p.Ciphertext) == 0 {
         return fmt.Errorf("missing required parameter: cipher_text=%q", "empty")
     }
-    if len(p.CipherText) > 4096 {
+    if len(p.Ciphertext) > 4096 {
         return fmt.Errorf("invalid parameter: cipher_text=%q", "too long")
     }
     if len(p.AAD) > 1024 {

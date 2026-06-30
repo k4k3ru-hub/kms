@@ -9,13 +9,13 @@ import (
 
 
 type EncryptParams struct {
-    PlainText string
-    AAD       string
+    Plaintext []byte
+    AAD       []byte
 }
 
 
 type EncryptResult struct {
-    CipherText string
+    Ciphertext []byte
 }
 
 
@@ -26,10 +26,10 @@ type EncryptResult struct {
 //   - 2026-06-29: Added.
 //
 func (p EncryptParams) Validate() error {
-    if p.PlainText == "" {
+    if len(p.Plaintext) == 0 {
         return fmt.Errorf("missing required parameter: plain_text=%q", "empty")
     }
-    if len(p.PlainText) > 4096 {
+    if len(p.Plaintext) > 4096 {
         return fmt.Errorf("invalid parameter: plain_text=%q", "too long")
     }
     if len(p.AAD) > 1024 {

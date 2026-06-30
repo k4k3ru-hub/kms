@@ -21,6 +21,9 @@ type SigningProvider = k4k3ruKMSSigning.Provider
 type EncryptionENVConfig = k4k3ruKMSEncryption.ENVConfig
 type SigningENVConfig = k4k3ruKMSSigning.ENVConfig
 
+type EncryptParams = k4k3ruKMSEncryption.EncryptParams
+type DecryptParams = k4k3ruKMSEncryption.DecryptParams
+
 type CreateKeyParams = k4k3ruKMSSigning.CreateKeyParams
 type SignParams = k4k3ruKMSSigning.SignParams
 type VerifyParams = k4k3ruKMSSigning.VerifyParams

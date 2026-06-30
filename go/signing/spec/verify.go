@@ -13,9 +13,9 @@ import (
 //   - AAD: env provider only
 //
 type VerifyParams struct {
-    SecretRef string
-    PublicKey *string
-    AAD       string
+    SecretRef []byte
+    PublicKey []byte
+    AAD       []byte
 }
 
 
@@ -26,7 +26,7 @@ type VerifyParams struct {
 //   - 2026-06-29: Added.
 //
 func (p VerifyParams) Validate() error {
-    if p.SecretRef == "" {
+    if len(p.SecretRef) == 0 {
         return fmt.Errorf("missing required parameter: secret_ref=%q", "empty")
     }
     if len(p.SecretRef) > 4096 {
@@ -36,10 +36,10 @@ func (p VerifyParams) Validate() error {
         return fmt.Errorf("invalid parameter: aad=%q", "too long")
     }
     if p.PublicKey != nil {
-        if *p.PublicKey == "" {
+        if len(p.PublicKey) == 0 {
             return fmt.Errorf("invalid parameter: public_key=%q", "empty")
         }
-        if len(*p.PublicKey) > 4096 {
+        if len(p.PublicKey) > 4096 {
             return fmt.Errorf("invalid parameter: public_key=%q", "too long")
         }
     }

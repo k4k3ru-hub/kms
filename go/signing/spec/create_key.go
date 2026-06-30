@@ -10,14 +10,14 @@ import (
 
 type CreateKeyParams struct {
     Algorithm  SignatureAlgorithm
-    AAD        string
+    AAD        []byte
 }
 
 type CreateKeyResult struct {
     ProviderID string
-    SecretRef  string
+    SecretRef  []byte
     Algorithm  SignatureAlgorithm
-    PublicKey  *string
+    PublicKey  []byte
     SecretRaw  []byte
 }
 

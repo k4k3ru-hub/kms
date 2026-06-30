@@ -9,7 +9,6 @@ import (
     "crypto/hmac"
     "crypto/rand"
     "crypto/sha256"
-    "encoding/base64"
     "encoding/json"
     "fmt"
 
@@ -24,10 +23,10 @@ type Provider struct {
     encryptionProvider k4k3ruKMSEncryption.Provider
 }
 
-type secretRef struct {
-    ID        string
-    Algorithm string
-    CipherText string
+type envSecretRef struct {
+    ID         string
+    Algorithm  string
+    Ciphertext []byte
 }
 
 
@@ -113,31 +112,27 @@ func (p *Provider) CreateKey(ctx context.Context, params k4k3ruKMSSigningSpec.Cr
         if _, err := rand.Read(secretKey); err != nil {
             return nil, fmt.Errorf("failed to create key: %w", err)
         }
-        secretRaw = secretKey
+        result.SecretRaw = secretKey
     case k4k3ruKMSSigningSpec.SignatureAlgorithmEd25519:
         publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
         if err != nil {
             return nil, fmt.Errorf("failed to create key: %w", err)
         }
 
-        publicKeyBase64 := base64.StdEncoding.EncodeToString(publicKey)
-        result.PublicKey = &publicKeyBase64
-
-        secretRaw = privateKey
+        result.SecretRaw = privateKey
+        result.PublicKey = publicKey
     default:
         return nil, fmt.Errorf("failed to create key: invalid parameter: signature_algorithm=%q", string(params.Algorithm))
     }
 
-    result.SecretRaw = secretRaw
-
     // Encrypt secret raw.
     aad := params.AAD
-    if aad == "" {
-        aad = p.id
+    if len(aad) == 0 {
+        aad = []byte(p.id)
     }
 
     encryptParams := k4k3ruKMSEncryption.EncryptParams{
-        PlainText: base64.StdEncoding.EncodeToString(secretRaw),
+        Plaintext: secretRaw,
         AAD:       aad,
     }
 
@@ -150,18 +145,18 @@ func (p *Provider) CreateKey(ctx context.Context, params k4k3ruKMSSigningSpec.Cr
     }
 
     // Build secret  ref
-    ref := secretRef{
+    ref := envSecretRef{
         ID:         p.id,
         Algorithm:  string(params.Algorithm),
-        CipherText: encryptedResult.CipherText,
+        Ciphertext: encryptedResult.Ciphertext,
     }
 
-    secretRefBytes, err := json.Marshal(ref)
+    secretRef, err := json.Marshal(ref)
     if err != nil {
         return nil, fmt.Errorf("failed to create key: %w", err)
     }
 
-    result.SecretRef = base64.StdEncoding.EncodeToString(secretRefBytes)
+    result.SecretRef = secretRef
 
     return result, nil
 }
@@ -195,13 +190,8 @@ func (p *Provider) Sign(ctx context.Context, params k4k3ruKMSSigningSpec.SignPar
     }
 
     // Decode secret ref.
-    secretRefBytes, err := base64.StdEncoding.DecodeString(params.SecretRef)
-    if err != nil {
-        return nil, fmt.Errorf("failed to sign: %w", err)
-    }
-
-    var ref secretRef
-    if err := json.Unmarshal(secretRefBytes, &ref); err != nil {
+    var ref envSecretRef
+    if err := json.Unmarshal(params.SecretRef, &ref); err != nil {
         return nil, fmt.Errorf("failed to sign: %w", err)
     }
     if ref.ID != p.id {
@@ -210,12 +200,12 @@ func (p *Provider) Sign(ctx context.Context, params k4k3ruKMSSigningSpec.SignPar
 
     // Decrypt secret raw.
     aad := params.AAD
-    if aad == "" {
-        aad = p.id
+    if len(aad) == 0 {
+        aad = []byte(p.id)
     }
 
     decryptParams := k4k3ruKMSEncryption.DecryptParams{
-        CipherText: ref.CipherText,
+        Ciphertext: ref.Ciphertext,
         AAD:        aad,
     }
 
@@ -227,37 +217,29 @@ func (p *Provider) Sign(ctx context.Context, params k4k3ruKMSSigningSpec.SignPar
         return nil, fmt.Errorf("failed to sign: unexpected error: decrypted_result=null")
     }
 
-    secretRaw := decryptedResult.PlainText
+    secretRaw := decryptedResult.Plaintext
 
     var signature []byte
 
     algorithm := k4k3ruKMSSigningSpec.SignatureAlgorithm(ref.Algorithm)
     switch algorithm {
     case k4k3ruKMSSigningSpec.SignatureAlgorithmHMACSHA256:
-        secretKey, err := base64.StdEncoding.DecodeString(secretRaw)
-        if err != nil {
-            return nil, fmt.Errorf("failed to sign: %w", err)
-        }
-        if len(secretKey) != k4k3ruKMSSigningSpec.MACKeySize {
-            return nil, fmt.Errorf("failed to sign: invalid parameter: mac_key_size=%d", len(secretKey))
+        if len(secretRaw) != k4k3ruKMSSigningSpec.MACKeySize {
+            return nil, fmt.Errorf("failed to sign: invalid parameter: mac_key_size=%d", len(secretRaw))
         }
 
-        mac := hmac.New(sha256.New, secretKey)
+        mac := hmac.New(sha256.New, secretRaw)
         if _, err := mac.Write(payload); err != nil {
             return nil, fmt.Errorf("failed to sign: %w", err)
         }
 
         signature = mac.Sum(nil)
     case k4k3ruKMSSigningSpec.SignatureAlgorithmEd25519:
-        privateKey, err := base64.StdEncoding.DecodeString(secretRaw)
-        if err != nil {
-            return nil, fmt.Errorf("failed to sign: %w", err)
-        }
-        if len(privateKey) != ed25519.PrivateKeySize {
-            return nil, fmt.Errorf("failed to sign: invalid parameter: ed25519_private_key_size=%d", len(privateKey))
+        if len(secretRaw) != ed25519.PrivateKeySize {
+            return nil, fmt.Errorf("failed to sign: invalid parameter: ed25519_private_key_size=%d", len(secretRaw))
         }
 
-        signature = ed25519.Sign(ed25519.PrivateKey(privateKey), payload)
+        signature = ed25519.Sign(ed25519.PrivateKey(secretRaw), payload)
     default:
         return nil, fmt.Errorf("failed to sign: invalid parameter: signature_algorithm=%q", string(ref.Algorithm))
     }
@@ -300,13 +282,8 @@ func (p *Provider) Verify(ctx context.Context, params k4k3ruKMSSigningSpec.Verif
     }
 
     // Decode secret ref.
-    secretRefBytes, err := base64.StdEncoding.DecodeString(params.SecretRef)
-    if err != nil {
-        return fmt.Errorf("failed to verify: %w", err)
-    }
-
-    var ref secretRef
-    if err := json.Unmarshal(secretRefBytes, &ref); err != nil {
+    var ref envSecretRef
+    if err := json.Unmarshal(params.SecretRef, &ref); err != nil {
         return fmt.Errorf("failed to verify: %w", err)
     }
     if ref.ID != p.id {
@@ -318,12 +295,12 @@ func (p *Provider) Verify(ctx context.Context, params k4k3ruKMSSigningSpec.Verif
     case k4k3ruKMSSigningSpec.SignatureAlgorithmHMACSHA256:
         // HMAC verify needs secret key.
         aad := params.AAD
-        if aad == "" {
-            aad = p.id
+        if len(aad) == 0 {
+            aad = []byte(p.id)
         }
 
         decryptParams := k4k3ruKMSEncryption.DecryptParams{
-            CipherText: ref.CipherText,
+            Ciphertext: ref.Ciphertext,
             AAD:        aad,
         }
 
@@ -335,15 +312,13 @@ func (p *Provider) Verify(ctx context.Context, params k4k3ruKMSSigningSpec.Verif
             return fmt.Errorf("failed to verify: unexpected error: decrypted_result=null")
         }
 
-        secretKey, err := base64.StdEncoding.DecodeString(decryptedResult.PlainText)
-        if err != nil {
-            return fmt.Errorf("failed to verify: %w", err)
-        }
-        if len(secretKey) != k4k3ruKMSSigningSpec.MACKeySize {
-            return fmt.Errorf("failed to verify: invalid parameter: mac_key_size=%d", len(secretKey))
+        secretRaw := decryptedResult.Plaintext
+
+        if len(secretRaw) != k4k3ruKMSSigningSpec.MACKeySize {
+            return fmt.Errorf("failed to verify: invalid parameter: mac_key_size=%d", len(secretRaw))
         }
 
-        mac := hmac.New(sha256.New, secretKey)
+        mac := hmac.New(sha256.New, secretRaw)
         if _, err := mac.Write(payload); err != nil {
             return fmt.Errorf("failed to verify: %w", err)
         }
@@ -356,19 +331,15 @@ func (p *Provider) Verify(ctx context.Context, params k4k3ruKMSSigningSpec.Verif
         return nil
 
     case k4k3ruKMSSigningSpec.SignatureAlgorithmEd25519:
-        if params.PublicKey == nil || *params.PublicKey == "" {
+        if len(params.PublicKey) == 0 {
             return fmt.Errorf("failed to verify: missing required parameter: public_key=%q", "empty")
         }
 
-        publicKey, err := base64.StdEncoding.DecodeString(*params.PublicKey)
-        if err != nil {
-            return fmt.Errorf("failed to verify: %w", err)
-        }
-        if len(publicKey) != ed25519.PublicKeySize {
-            return fmt.Errorf("failed to verify: invalid parameter: ed25519_public_key_size=%d", len(publicKey))
+        if len(params.PublicKey) != ed25519.PublicKeySize {
+            return fmt.Errorf("failed to verify: invalid parameter: ed25519_public_key_size=%d", len(params.PublicKey))
         }
 
-        if !ed25519.Verify(ed25519.PublicKey(publicKey), payload, signature) {
+        if !ed25519.Verify(ed25519.PublicKey(params.PublicKey), payload, signature) {
             return fmt.Errorf("failed to verify: invalid signature")
         }
 

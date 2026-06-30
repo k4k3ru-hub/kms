@@ -108,14 +108,14 @@ func (p *Provider) Encrypt(ctx context.Context, params k4k3ruKMSEncryptionSpec.E
         return nil, fmt.Errorf("failed to encrypt: %w", err)
     }
 
-    sealed := p.aead.Seal(nil, nonce, []byte(params.PlainText), []byte(params.AAD))
+    sealed := p.aead.Seal(nil, nonce, params.Plaintext, params.AAD)
 
     payload := make([]byte, 0, len(nonce)+len(sealed))
     payload = append(payload, nonce...)
     payload = append(payload, sealed...)
 
     return &k4k3ruKMSEncryptionSpec.EncryptResult{
-        CipherText: base64.StdEncoding.EncodeToString(payload),
+        Ciphertext: payload,
     }, nil
 }
 
@@ -143,25 +143,20 @@ func (p *Provider) Decrypt(ctx context.Context, params k4k3ruKMSEncryptionSpec.D
         return nil, fmt.Errorf("failed to decrypt: %w", err)
     }
 
-    payload, err := base64.StdEncoding.DecodeString(params.CipherText)
-    if err != nil {
-        return nil, fmt.Errorf("failed to decrypt: invalid parameter: cipher_text: %w", err)
-    }
-
     nonceSize := p.aead.NonceSize()
-    if len(payload) <= nonceSize {
-        return nil, fmt.Errorf("failed to decrypt: invalid parameter: cipher_text_size=%d", len(payload))
+    if len(params.Ciphertext) <= nonceSize {
+        return nil, fmt.Errorf("failed to decrypt: invalid parameter: cipher_text_size=%d", len(params.Ciphertext))
     }
 
-    nonce := payload[:nonceSize]
-    sealed := payload[nonceSize:]
+    nonce := params.Ciphertext[:nonceSize]
+    sealed := params.Ciphertext[nonceSize:]
 
-    plainTextBytes, err := p.aead.Open(nil, nonce, sealed, []byte(params.AAD))
+    plaintext, err := p.aead.Open(nil, nonce, sealed, params.AAD)
     if err != nil {
         return nil, fmt.Errorf("failed to decrypt: %w", err)
     }
 
     return &k4k3ruKMSEncryptionSpec.DecryptResult{
-        PlainText: string(plainTextBytes),
+        Plaintext: plaintext,
     }, nil
 }

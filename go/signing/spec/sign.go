@@ -13,8 +13,8 @@ import (
 //   - AAD: env provider only
 //
 type SignParams struct {
-    SecretRef string
-    AAD       string
+    SecretRef []byte
+    AAD       []byte
 }
 
 type SignResult struct {
@@ -30,7 +30,7 @@ type SignResult struct {
 //   - 2026-06-29: Added.
 //
 func (p SignParams) Validate() error {
-    if p.SecretRef == "" {
+    if len(p.SecretRef) == 0 {
         return fmt.Errorf("missing required parameter: secret_ref=%q", "empty")
     }
     if len(p.SecretRef) > 4096 {
