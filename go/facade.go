@@ -19,6 +19,7 @@ type CreateKeyParams = k4k3ruKMSSigning.CreateKeyParams
 type SignParams = k4k3ruKMSSigning.SignParams
 type VerifyParams = k4k3ruKMSSigning.VerifyParams
 
+type ENVConfig = k4k3ruKMSConfig.ENVConfig
 type ENVConfigOption = k4k3ruKMSConfig.ENVConfigOption
 
 type SigningSignatureAlgorithm = k4k3ruKMSSigning.SignatureAlgorithm
